@@ -364,11 +364,10 @@ namespace TwitchBot
         private void GambleCoinsCommand(string user, string mes)
         {
             Random random = new Random();
-            int choice = random.Next(1, 101);
+            int choice = random.Next(1, 110);
             string username = user;
             string message = mes;
-            if (username == "mahyar121")
-            {
+           
                 string coinsToTransferString = message.Split(new string[] { " " }, StringSplitOptions.None)[1];
                 double pointstotransfer = 0;
                 bool validNumber = double.TryParse(coinsToTransferString.Split(new[] { ' ' }, StringSplitOptions.None)[0], out pointstotransfer);
@@ -386,7 +385,7 @@ namespace TwitchBot
                         irc.sendChatMessage(username + " has lost " + pointstotransfer + " coins!");
                     }
                 }
-            }
+            
         }
 
         private void CheckPoints(string user)
@@ -632,10 +631,12 @@ namespace TwitchBot
             this.channel = channel;
             outputStream.WriteLine("JOIN #" + channel);
             outputStream.Flush();
+            sendChatMessage("I have entered the channel, lets have some fun!");
         }
 
         public void leaveRoom()
         {
+            sendChatMessage("I am leaving the channel, good bye friends :(");
             outputStream.Close();
             inputStream.Close();
         }
