@@ -37,6 +37,8 @@ namespace TwitchBot
 
         bool pointSpamFilter = false;
         bool rankSpamFilter = false;
+        bool gambleSpamFilter = false;
+        List<CommandSpamUser> gambleSpamUser = new List<CommandSpamUser>();
         List<CommandSpamUser> rankSpamUser = new List<CommandSpamUser>();
         List<CommandSpamUser> commandSpamUser = new List<CommandSpamUser>();
 
@@ -60,7 +62,9 @@ namespace TwitchBot
             RankSpamTimer.Start();
             AutoRepeatTimer.Start();
             LoyaltyPointTimer.Start();
-            ViewerBoxTimer_Tick(null, null);
+            GambleTimer.Start();
+            
+            
         }
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -140,7 +144,7 @@ namespace TwitchBot
             switch(command.ToLower())
             {
                 case "twitter":
-                    irc.sendChatMessage("Don't Forget to follow Mahyar's twitter. Twitter: https://twitter.com/Mahyar121 ");
+                    irc.sendChatMessage("Don't Forget to follow Mahyar's twitter. Twitter: https://www.twitter.com/Mahyar121 ");
                     break;
                 case "joke":
                     joke();
@@ -158,7 +162,7 @@ namespace TwitchBot
                     CheckRank(username);
                     break;
                 case "commands":
-                    irc.sendChatMessage("I also have commands that you can use such as !joke, !rank, !points, !coins, !gamble");
+                    irc.sendChatMessage("I also have commands that you can use such as !joke, !rank, !points, !coins, !gamble (some number)");
                     break;
                 case "coins":
                     CheckCoins(username);
@@ -363,28 +367,50 @@ namespace TwitchBot
 
         private void GambleCoinsCommand(string user, string mes)
         {
-            Random random = new Random();
-            int choice = random.Next(1, 110);
-            string username = user;
-            string message = mes;
-           
+            if (!gambleSpamFilter)
+            {
+                gambleSpamFilter = true;
+
+                CommandSpamUser Cuser = new CommandSpamUser();
+                Cuser.username = user;
+                Cuser.timeOfMessage = DateTime.Now;
+                gambleSpamUser.Add(Cuser);
+
+                Random random = new Random();
+                int choice = random.Next(1, 100);
+                string username = user;
+                string message = mes;
+
                 string coinsToTransferString = message.Split(new string[] { " " }, StringSplitOptions.None)[1];
+                if (coinsToTransferString == null)
+                {
+                    irc.sendChatMessage("Try putting a coin value after the gamble command. !gamble 10 for example");
+                    return;
+                }
                 double pointstotransfer = 0;
                 bool validNumber = double.TryParse(coinsToTransferString.Split(new[] { ' ' }, StringSplitOptions.None)[0], out pointstotransfer);
-                if (validNumber && pointstotransfer > 0)
+                string coinsofuser = CoinsIni.IniReadValue("#mahyar121." + username, "Coins");
+                double currentCoins = double.Parse(coinsofuser);
+ 
+                if (pointstotransfer > currentCoins)
                 {
-                    if (choice > 40)
+                    irc.sendChatMessage("You can't gamble more than what you currently have!");
+                }
+                if (validNumber && pointstotransfer > 0 && pointstotransfer <= currentCoins)
+                {
+                    if (choice > 55) 
                     {
                         pointstotransfer = pointstotransfer * 2;
                         AddCoins(username, pointstotransfer);
-                        irc.sendChatMessage(username + " has gained " + pointstotransfer + " coins!");
+                        irc.sendChatMessage(username + " has gained " + pointstotransfer + " coins, don't get greedy now!");
                     }
                     else
                     {
                         AddCoins(username, -pointstotransfer);
-                        irc.sendChatMessage(username + " has lost " + pointstotransfer + " coins!");
+                        irc.sendChatMessage(username + " has painfully lost " + pointstotransfer + " coins, maybe you should stop!");
                     }
                 }
+            }
             
         }
 
@@ -410,6 +436,7 @@ namespace TwitchBot
                 if (yourpoints == "")
                 {
                     irc.sendChatMessage("You don't have any points :(");
+                    return;
                 }
                 irc.sendChatMessage(user + " has " + yourpoints + " points!");
             }
@@ -498,14 +525,21 @@ namespace TwitchBot
 
         private void ViewerBoxTimer_Tick(object sender, EventArgs e)
         {
-            ViewerListUpdate();
+            try
+            {
+                ViewerListUpdate();
+            }
+            catch(Exception exception)
+            {
+                return;
+            }
+            
         }
 
         private void ViewerListUpdate()
         {
             ViewerBox.Items.Clear();
             Chatters AllChatters = ChatClient.GetChatters("mahyar121");
-            int numberofchatters = ChatClient.GetChatterCount("mahyar121");
             
 
             foreach (string admin in AllChatters.Admins)
@@ -580,8 +614,8 @@ namespace TwitchBot
         private void RankSpamTimer_Tick(object sender, EventArgs e)
         {
             rankSpamFilter = false;
-            List<CommandSpamUser> temp2 = rankSpamUser;
-            foreach (CommandSpamUser user in temp2)
+            List<CommandSpamUser> temp = rankSpamUser;
+            foreach (CommandSpamUser user in temp)
             {
                 TimeSpan duration = DateTime.Now - user.timeOfMessage;
                 if (duration > TimeSpan.FromSeconds(10))
@@ -592,11 +626,29 @@ namespace TwitchBot
             }
         }
 
+        private void GambleTimer_Tick(object sender, EventArgs e)
+        {
+            gambleSpamFilter = false;
+            List<CommandSpamUser> temp = gambleSpamUser;
+            foreach (CommandSpamUser user in temp)
+            {
+                TimeSpan duration = DateTime.Now - user.timeOfMessage;
+                if (duration > TimeSpan.FromSeconds(6)) // unique user has 4 sec cooldown for command use
+                {
+                    gambleSpamUser.Remove(user);
+                    return;
+                }
+            }
+        }
+
         private void AutoRepeatTimer_Tick(object sender, EventArgs e)
         {
-            irc.sendChatMessage("Don't Forget to follow Mahyar's twitter. Twitter: https://twitter.com/Mahyar121 ");
-            irc.sendChatMessage("I also have commands that you can use such as !joke, !rank, !points, !coins, !gamble");
+            irc.sendChatMessage("Don't Forget to follow Mahyar's twitter. Twitter: https://www.twitter.com/Mahyar121 ");
+            irc.sendChatMessage("I also have commands that you can use such as !joke, !rank, !points, !coins, !gamble (coin value)");
         }
+
+       
+
         #endregion
 
 
