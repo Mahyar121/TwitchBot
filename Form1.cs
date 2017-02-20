@@ -24,9 +24,9 @@ namespace TwitchBot
     {
         #region Variables
         private static string userName = "mahyar121bot";
-        private static string password = "oauth:5h2ucjr1x8gt6po3wku709pntw399x";
+        private static string password = "your bot authenticator goes here";
 
-        private static string TwitchClientID = "2napvua11blsl5z2lsehffuc7prg0g";
+        private static string TwitchClientID = "twitch chat client id value";
         TwitchReadOnlyClient APIClient = new TwitchReadOnlyClient(TwitchClientID);
         TwitchROChat ChatClient = new TwitchROChat(TwitchClientID);
 
